@@ -1,20 +1,31 @@
 {
   "name": "releasearoni",
   "description": "WIP - nothing to see here",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "author": "Bret Comnes <bcomnes@gmail.com> (https://bret.io)",
   "bugs": {
     "url": "https://github.com/bcomnes/releasearoni/issues"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@octokit/rest": "^22.0.1",
+    "argsclopts": "^1.0.5",
+    "changelog-parser": "^3.0.1",
+    "ghauth": "^7.0.1",
+    "github-url-to-object": "^4.0.6",
+    "mime-types": "^3.0.2",
+    "undici": "^7.24.3"
+  },
   "devDependencies": {
-    "@voxpelli/tsconfig": "^16.1.0",
+    "@types/changelog-parser": "^2.8.4",
+    "@types/ghauth": "^3.2.5",
+    "@types/github-url-to-object": "^4.0.4",
+    "@types/mime-types": "^3.0.1",
     "@types/node": "^25.0.0",
+    "@voxpelli/tsconfig": "^16.1.0",
+    "auto-changelog": "^2.0.0",
+    "c8": "^11.0.0",
     "neostandard": "^0.13.0",
     "npm-run-all2": "^8.0.1",
-    "auto-changelog": "^2.0.0",
-    "gh-release": "^7.0.0",
-    "c8": "^11.0.0",
     "typescript": "~5.9.3"
   },
   "engines": {
@@ -25,6 +36,10 @@
   "keywords": [],
   "license": "MIT",
   "type": "module",
+  "bin": {
+    "releasearoni": "./bin/releasearoni.js",
+    "releasearoni-gh": "./bin/releasearoni-gh.js"
+  },
   "module": "index.js",
   "main": "index.js",
   "types": "index.d.ts",
@@ -33,12 +48,12 @@
     "url": "https://github.com/bcomnes/releasearoni.git"
   },
   "scripts": {
-    "prepublishOnly": "npm run build && git push --follow-tags && gh-release -y",
+    "prepublishOnly": "npm run build && git push --follow-tags && releasearoni-gh -y",
     "postpublish": "npm run clean",
     "test": "run-s test:*",
     "test:lint": "eslint",
     "test:tsc": "tsc",
-    "test:node-test": "c8 node --test --test-reporter spec",
+    "test:node-test": "node --test",
     "version": "run-s version:*",
     "version:changelog": "auto-changelog -p --template keepachangelog auto-changelog --breaking-pattern 'BREAKING CHANGE:'",
     "version:git": "git add CHANGELOG.md",
