@@ -1,7 +1,14 @@
 import test from 'node:test'
 import assert from 'node:assert'
-import { hello } from './index.js'
+import { createRelease } from './index.js'
 
-test('index export', async (_t) => {
-  assert.strictEqual(hello(), 'world', 'A message')
+test('createRelease is exported', () => {
+  assert.strictEqual(typeof createRelease, 'function')
+})
+
+test('createRelease throws without auth.token', async () => {
+  await assert.rejects(
+    () => createRelease(/** @type {any} */ ({})),
+    /auth\.token is required/
+  )
 })
