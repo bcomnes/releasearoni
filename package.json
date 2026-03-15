@@ -1,27 +1,25 @@
 {
   "name": "releasearoni",
   "description": "WIP - nothing to see here",
-  "files": [
-    "*.js",
-    "lib/*.js"
-  ],
-  "version": "0.0.1",
+  "version": "0.0.0",
   "author": "Bret Comnes <bcomnes@gmail.com> (https://bret.io)",
   "bugs": {
     "url": "https://github.com/bcomnes/releasearoni/issues"
   },
   "dependencies": {},
   "devDependencies": {
-    "standard": "^17.0.0",
-    "npm-run-all2": "^6.0.0",
+    "@voxpelli/tsconfig": "^16.1.0",
+    "@types/node": "^25.0.0",
+    "neostandard": "^0.13.0",
+    "npm-run-all2": "^8.0.1",
     "auto-changelog": "^2.0.0",
     "gh-release": "^7.0.0",
-    "c8": "^8.0.0",
-    "dependency-cruiser": "^13.0.0"
+    "c8": "^11.0.0",
+    "typescript": "~5.9.3"
   },
   "engines": {
-    "node": "^19.0.0 || ^18.0.0",
-    "npm": "^9.0.0 || ^8.0.0"
+    "node": ">=20",
+    "npm": ">=10"
   },
   "homepage": "https://github.com/bcomnes/releasearoni",
   "keywords": [],
@@ -29,26 +27,26 @@
   "type": "module",
   "module": "index.js",
   "main": "index.js",
-  "exports": "./index.js",
+  "types": "index.d.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/bcomnes/releasearoni.git"
   },
   "scripts": {
-    "prepublishOnly": "git push --follow-tags && gh-release -y",
+    "prepublishOnly": "npm run build && git push --follow-tags && gh-release -y",
+    "postpublish": "npm run clean",
     "test": "run-s test:*",
-    "test:deptree": "depcruise --validate .dependency-cruiser.json .",
-    "test:standard": "standard --verbose",
+    "test:lint": "eslint",
+    "test:tsc": "tsc",
     "test:node-test": "c8 node --test --test-reporter spec",
     "version": "run-s version:*",
     "version:changelog": "auto-changelog -p --template keepachangelog auto-changelog --breaking-pattern 'BREAKING CHANGE:'",
     "version:git": "git add CHANGELOG.md",
-    "deps": "depcruise --exclude '^node_modules' --output-type dot . | dot -T svg | depcruise-wrap-stream-in-html > dependency-graph.html"
-  },
-  "standard": {
-    "ignore": [
-      "dist"
-    ]
+    "build": "npm run clean && run-p build:*",
+    "build:declaration": "tsc -p declaration.tsconfig.json",
+    "clean": "run-p clean:*",
+    "clean:declarations-top": "rm -rf $(find . -maxdepth 1 -type f -name '*.d.ts*')",
+    "clean:declarations-lib": "rm -rf $(find lib -type f -name '*.d.ts*' ! -name '*-types.d.ts')"
   },
   "funding": {
     "type": "individual",
