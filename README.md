@@ -91,6 +91,45 @@ Both bins derive release defaults automatically:
 
 The `CHANGELOG.md` must be in [keepachangelog](https://keepachangelog.com) format. Releases are blocked if an `[Unreleased]` section contains content.
 
+### `releasearoni version`
+
+Generates `CHANGELOG.md` via [auto-changelog](https://github.com/CookPete/auto-changelog) and stages it with `git add`. Designed for use as the npm [`version` lifecycle script](https://docs.npmjs.com/cli/v10/using-npm/scripts#life-cycle-scripts).
+
+```console
+Usage: releasearoni version [options]
+
+    --changelog, -c       Changelog file to generate and stage (default: CHANGELOG.md)
+    --add, -a             Additional files to stage after changelog (repeatable)
+    --breaking-pattern    Regex for breaking changes (default: 'BREAKING CHANGE:')
+    --template            auto-changelog template (default: keepachangelog)
+    --workpath, -w        Working directory (default: cwd)
+    --help, -h            Show help
+```
+
+Typical `package.json` setup — no `npm-run-all2` or separate `auto-changelog` install needed:
+
+```json
+{
+  "scripts": {
+    "version": "releasearoni version",
+    "release": "git push --follow-tags && releasearoni -y"
+  }
+}
+```
+
+Run `npm version patch` (or `minor`/`major`) and npm will:
+1. Bump the version in `package.json`
+2. Run `releasearoni version` → regenerates `CHANGELOG.md` and stages it
+3. Commit and tag
+
+Then `npm run release` pushes the tag and creates the GitHub release.
+
+To stage extra files (e.g. a lock file your project manages separately):
+
+```json
+"version": "releasearoni version --add package-lock.json"
+```
+
 ### Environment variables (`releasearoni` only)
 
 Authentication for the direct API bin is resolved in this order:

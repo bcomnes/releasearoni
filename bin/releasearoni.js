@@ -16,6 +16,13 @@ import { getDefaults } from '../lib/get-defaults.js'
 import { preview } from '../lib/preview.js'
 import { uploadAssets } from '../lib/upload-assets.js'
 import { options, pkgPath } from '../lib/args.js'
+import { runVersion } from '../lib/version-hook.js'
+
+// Subcommand: releasearoni version
+if (process.argv[2] === 'version') {
+  await runVersion(process.argv.slice(3))
+  process.exit(0)
+}
 
 const { values } = parseArgs({ options, allowPositionals: false, args: process.argv.slice(2) })
 const argv = /** @type {Argv} */ (values)

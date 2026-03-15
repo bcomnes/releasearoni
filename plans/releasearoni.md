@@ -26,6 +26,14 @@ All planned work is done. Tests pass (lint, tsc, node:test). README is written.
 - [x] `README.md` — full docs modeled after async-neocities style
 - [x] `plans/releasearoni.md` — this file
 
+### Planned
+
+- [x] Move `auto-changelog` from `devDependencies` → `dependencies` in `package.json`
+- [x] Add `lib/version-hook.js` — runs `auto-changelog` + `git add`
+- [x] Add `version` subcommand routing in `bin/releasearoni.js` and `bin/releasearoni-gh.js`
+- [x] Add args parsing for `releasearoni version` (`--changelog`, `--add`, `--breaking-pattern`, `--template`, `--workpath`)
+- [x] Update README: replace 3-script example with single `"version": "releasearoni version"`
+
 ### Key deviations from original plan
 
 - Implemented **both** Option A and Option B (two separate bins) rather than starting with A alone
@@ -35,6 +43,104 @@ All planned work is done. Tests pass (lint, tsc, node:test). README is written.
 - `c8` removed from `test:node-test` script due to `yargs` ESM conflict on Node 25
 - Test files listed explicitly in npm script (glob expansion picked up node_modules artifacts)
 - `ghauth` v7 has no matching `@types/ghauth@3` — cast to `any` at call site
+
+---
+
+## Bundling `auto-changelog` + `releasearoni version` subcommand
+
+Previously users needed:
+1. Two separate installs: `gh-release` + `auto-changelog`
+2. Three npm scripts wired together with `npm-run-all2`
+
+releasearoni eliminates both by:
+1. Shipping `auto-changelog` as a production dependency
+2. Providing a `releasearoni version` subcommand that consolidates the changelog + git stage step
+
+### Recommended `package.json` scripts for consumers
+
+```json
+{
+  "scripts": {
+    "version": "releasearoni version",
+    "release": "git push --follow-tags && releasearoni -y"
+  }
+}
+```
+
+That's it. Users run `npm version patch|minor|major` and npm automatically:
+1. Bumps the version in `package.json`
+2. Runs `version` lifecycle → `releasearoni version` generates `CHANGELOG.md` and stages it
+3. Commits and tags
+
+Then `npm run release` pushes tags and creates the GitHub release.
+
+### `releasearoni version` subcommand
+
+The `version` subcommand is designed to be used as the npm `version` lifecycle script.
+It does two things in sequence:
+
+1. Runs `auto-changelog` with the keepachangelog template
+2. `git add`s the changelog file (and any additional files specified via `--add`)
+
+```
+$ releasearoni version [options]
+
+    --changelog, -c       Path to changelog file (default: CHANGELOG.md)
+    --add, -a             Additional files to stage after changelog (repeatable)
+    --breaking-pattern    Regex pattern for breaking changes (default: 'BREAKING CHANGE:')
+    --template            auto-changelog template (default: keepachangelog)
+    --workpath, -w        Working directory (default: cwd)
+    --help, -h            Show help
+```
+
+#### Examples
+
+Default (CHANGELOG.md, keepachangelog template):
+```
+"version": "releasearoni version"
+```
+
+With additional staged files:
+```
+"version": "releasearoni version --add package-lock.json"
+```
+
+Custom changelog path:
+```
+"version": "releasearoni version --changelog HISTORY.md"
+```
+
+Custom breaking pattern:
+```
+"version": "releasearoni version --breaking-pattern 'BREAKING CHANGE:|breaking:'"
+```
+
+### Implementation
+
+1. Move `auto-changelog` from `devDependencies` → `dependencies` in `package.json`
+2. Add `bin/releasearoni-version.js` OR extend the existing CLIs with subcommand routing
+3. The `version` subcommand shells out to `auto-changelog` programmatically (via its Node API
+   if it exposes one, otherwise `execFileSync`) then runs `git add <files>`
+4. Register `releasearoni version` — either as a separate bin entry or as a subcommand
+   parsed by the existing `bin/releasearoni.js` before the main release flow
+5. Document the single-line `version` script in README
+
+### Subcommand routing design
+
+The cleanest approach is to check `process.argv[2]` for `version` before parsing
+release-specific args:
+
+```js
+// bin/releasearoni.js (top of file)
+if (process.argv[2] === 'version') {
+  const { runVersion } = await import('../lib/version-hook.js')
+  await runVersion(process.argv.slice(3))
+  process.exit(0)
+}
+// ... existing release flow continues below
+```
+
+This keeps a single bin entry and avoids a separate `releasearoni-version` binary.
 
 ---
 
@@ -82,6 +188,7 @@ All planned work is done. Tests pass (lint, tsc, node:test). README is written.
 |-----|--------|
 | `argsclopts` | Formats help text for `node:util parseArgs`; authored by bcomnes |
 | `undici` | HTTP client for asset uploads — better stream support than global fetch, ships with Node but importable directly for `request()` API |
+| `auto-changelog` | Moved from devDep → dep so consumers get changelog generation for free |
 
 ### Consider (optional)
 
@@ -283,6 +390,8 @@ function mimeType(filename) {
 | ES modules | ❌ CJS | ✅ |
 | JSDoc types | ❌ | ✅ |
 | GH_TOKEN / GITHUB_TOKEN env | partial | ✅ (first-class) |
+| Changelog generation bundled | ❌ (install auto-changelog separately) | ✅ (auto-changelog included) |
+| `version` lifecycle one-liner | ❌ (3 scripts + npm-run-all2) | ✅ (`releasearoni version`) |
 
 ---
 
