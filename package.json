@@ -1,7 +1,7 @@
 {
   "name": "releasearoni",
   "description": "WIP - nothing to see here",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": "Bret Comnes <bcomnes@gmail.com> (https://bret.io)",
   "bugs": {
     "url": "https://github.com/bcomnes/releasearoni/issues"
@@ -23,7 +23,6 @@
     "@types/mime-types": "^3.0.1",
     "@types/node": "^25.0.0",
     "@voxpelli/tsconfig": "^16.1.0",
-
     "neostandard": "^0.13.0",
     "npm-run-all2": "^8.0.1",
     "typescript": "~6.0.2"
