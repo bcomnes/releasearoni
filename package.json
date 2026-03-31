@@ -33,6 +33,15 @@
   },
   "homepage": "https://github.com/bcomnes/releasearoni",
   "keywords": [],
+  "files": [
+    "bin/",
+    "lib/",
+    "!lib/*.test.js",
+    "index.js",
+    "index.d.ts",
+    "index.d.ts.map",
+    "CHANGELOG.md"
+  ],
   "license": "MIT",
   "type": "module",
   "bin": {
