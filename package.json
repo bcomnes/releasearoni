@@ -28,8 +28,8 @@
     "typescript": "~6.0.2"
   },
   "engines": {
-    "node": ">=20",
-    "npm": ">=10"
+    "node": ">=24",
+    "npm": ">=11"
   },
   "homepage": "https://github.com/bcomnes/releasearoni",
   "keywords": [],
