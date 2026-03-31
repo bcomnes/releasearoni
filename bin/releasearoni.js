@@ -62,12 +62,16 @@ if (!existsSync(resolve(workpath, 'package.json')) || !existsSync(resolve(workpa
 const isEnterprise = !!argv.endpoint && argv.endpoint !== 'https://api.github.com'
 
 // Auth: env vars first, then ghauth interactive flow
-const { GH_TOKEN, GITHUB_TOKEN, GH_RELEASE_GITHUB_API_TOKEN } = process.env
+const { GH_TOKEN, GITHUB_TOKEN, GH_RELEASE_GITHUB_API_TOKEN, CI } = process.env
 const envToken = GH_TOKEN || GITHUB_TOKEN || GH_RELEASE_GITHUB_API_TOKEN
 /** @type {{ token: string }} */
 let auth
 if (envToken) {
   auth = { token: envToken }
+} else if (CI) {
+  console.error('releasearoni: No GitHub token found in CI environment.')
+  console.error('releasearoni: Set GH_TOKEN or GITHUB_TOKEN to a token with repo scope.')
+  process.exit(1)
 } else {
   // ghauth v7 returns a Promise; cast to expected shape
   auth = /** @type {{ token: string }} */ (await /** @type {any} */ (ghauth)({
