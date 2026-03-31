@@ -57,7 +57,7 @@
     "url": "git+https://github.com/bcomnes/releasearoni.git"
   },
   "scripts": {
-    "prepublishOnly": "node ./bin/releasearoni.js npm-check && npm run build && git push --follow-tags && node ./bin/releasearoni-gh.js -y",
+    "prepublishOnly": "node ./bin/releasearoni-gh.js",
     "postpublish": "npm run clean",
     "test": "run-s test:*",
     "test:lint": "eslint",

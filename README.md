@@ -40,7 +40,10 @@ Usage: releasearoni [options]
     --assets, -a          Comma-delimited list of assets to upload
     --dry-run             Preview release without creating it (default: false)
     --no-upsert           Fail if a release for this tag already exists (default: false)
-    --yes, -y             Skip confirmation prompt (default: false)
+    --prompt              Prompt for confirmation before publishing (default: false)
+    --no-npm-check        Skip npm auth check before publishing (default: false)
+    --no-push             Skip git push --follow-tags before publishing (default: false)
+    --no-build            Skip npm run build even if a build script is present (default: false)
     --help, -h            Show help
     --version, -v         Show version
 
@@ -69,7 +72,10 @@ Usage: releasearoni-gh [options]
     --assets, -a          Comma-delimited list of assets to upload
     --dry-run             Preview release without creating it (default: false)
     --no-upsert           Fail if a release for this tag already exists (default: false)
-    --yes, -y             Skip confirmation prompt (default: false)
+    --prompt              Prompt for confirmation before publishing (default: false)
+    --no-npm-check        Skip npm auth check before publishing (default: false)
+    --no-push             Skip git push --follow-tags before publishing (default: false)
+    --no-build            Skip npm run build even if a build script is present (default: false)
     --help, -h            Show help
     --version, -v         Show version
 
@@ -108,7 +114,7 @@ Typical `package.json` setup:
 ```json
 {
   "scripts": {
-    "prepublishOnly": "releasearoni npm-check && git push --follow-tags && releasearoni -y"
+    "prepublishOnly": "releasearoni"
   }
 }
 ```
@@ -128,14 +134,14 @@ Usage: releasearoni version [options]
     --help, -h            Show help
 ```
 
-Typical `package.json` setup — no `npm-run-all2` or separate `auto-changelog` install needed:
+Typical `package.json` setup — no separate `auto-changelog` install needed:
 
 ```json
 {
   "scripts": {
     "preversion": "releasearoni preversion",
     "version": "releasearoni version",
-    "release": "git push --follow-tags && releasearoni -y"
+    "prepublishOnly": "releasearoni"
   }
 }
 ```
@@ -146,7 +152,7 @@ Run `npm version patch` (or `minor`/`major`) and npm will:
 3. Run `releasearoni version` → regenerates `CHANGELOG.md` and stages it
 4. Commit and tag
 
-Then `npm run release` pushes the tag and creates the GitHub release.
+Then `npm publish` triggers `prepublishOnly`, which checks npm auth, pushes the tag, and creates the GitHub release.
 
 To stage extra files (e.g. a lock file your project manages separately):
 
@@ -167,13 +173,94 @@ Usage: releasearoni preversion [options]
 
 Without this, a dirty working tree produces npm's terse `Git working directory not clean.` error with no indication of what is actually dirty — especially painful in CI where you can't inspect the workspace interactively.
 
+## Example setup
+
+A complete `package.json` wired up for versioning and publishing via GitHub Actions:
+
+```jsonc
+{
+  "name": "my-package",
+  "version": "1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/my-org/my-package.git"
+  },
+  "scripts": {
+    // Runs before `npm version`: verifies the working tree is clean
+    "preversion": "releasearoni preversion",
+    // Runs during `npm version`: regenerates CHANGELOG.md and stages it
+    // Use --add to stage additional files that should be part of the version commit
+    "version": "releasearoni version --add dist/manifest.json --add src/generated/version.js",
+    // Runs before `npm publish`:
+    //   1. checks npm login / OIDC status
+    //   2. runs `npm run build` if a build script is present
+    //   3. pushes the version commit + tag to GitHub
+    //   4. creates the GitHub release
+    // Use releasearoni-gh instead if you prefer the gh CLI.
+    "prepublishOnly": "releasearoni",
+    // Clean up build artifacts after npm has published them
+    "postpublish": "npm run clean"
+  },
+  "devDependencies": {
+    "releasearoni": "^0.1.0"
+  }
+}
+```
+
+`releasearoni` and `releasearoni-gh` are interchangeable in the scripts above — swap in `releasearoni-gh` if you prefer to delegate to the `gh` CLI.
+
+A matching GitHub Actions workflow that triggers on manual dispatch:
+
+```yaml
+# .github/workflows/release.yml
+name: npm bump
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version type'
+        type: choice
+        options: [major, minor, patch]
+        default: patch
+        required: true
+
+permissions:
+  contents: write # required to push the version commit, tag, and create the GitHub release
+  id-token: write # required for OIDC publishing to npm (provenance)
+
+jobs:
+  version_and_release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # fetch full history so things like auto-changelog work properly
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+      - run: npm install
+      - run: npm test
+      - name: Configure git author
+        run: |
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+      - name: npm version
+        run: npm version "${{ github.event.inputs.version_type }}"
+      - name: npm publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # used by releasearoni to create the GitHub release
+        run: npm publish
+```
+
+`npm version` runs the `preversion` / `version` lifecycle scripts (changelog + commit + tag), then `npm publish` triggers `prepublishOnly` which pushes the tag and creates the GitHub release.
+
 ### Environment variables (`releasearoni` only)
 
 Authentication for the direct API bin is resolved in this order:
 
 - `GH_TOKEN`
 - `GITHUB_TOKEN`
-- `GH_RELEASE_GITHUB_API_TOKEN`
 - Interactive [GitHub device flow](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps#device-flow) via `ghauth` — opens a browser prompt, stores the token in the OS keychain for future runs. Press <kbd>Enter</kbd> at the device flow prompt to fall back to pasting a personal access token instead.
 
 ## API

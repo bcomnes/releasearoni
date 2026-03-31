@@ -6,12 +6,12 @@
  * @import { Argv } from '../lib/args.js'
  */
 
-import { existsSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs'
+import { readFile, access, writeFile, unlink } from 'node:fs/promises'
 import { resolve, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { randomBytes } from 'node:crypto'
-import { execFileSync, spawnSync } from 'node:child_process'
-import { parseArgs } from 'node:util'
+import { execFile, spawnSync } from 'node:child_process'
+import { parseArgs, promisify } from 'node:util'
 import { createInterface } from 'node:readline/promises'
 import { formatHelpText } from 'argsclopts'
 import { getDefaults } from '../lib/get-defaults.js'
@@ -20,6 +20,8 @@ import { options, pkgPath } from '../lib/args.js'
 import { runVersion } from '../lib/version-hook.js'
 import { runNpmCheck } from '../lib/npm-check.js'
 import { runPreversion } from '../lib/preversion.js'
+
+const execFileAsync = promisify(execFile)
 
 // Subcommand: releasearoni-gh version
 if (process.argv[2] === 'version') {
@@ -41,7 +43,7 @@ if (process.argv[2] === 'preversion') {
 
 const { values } = parseArgs({ options, allowPositionals: false, args: process.argv.slice(2) })
 const argv = /** @type {Argv} */ (values)
-const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'))
+const pkg = JSON.parse(await readFile(pkgPath, 'utf8'))
 
 if (argv.version) {
   console.log(pkg.version)
@@ -55,7 +57,7 @@ if (argv.help) {
 
 // Check gh is installed
 try {
-  execFileSync('gh', ['--version'], { stdio: 'ignore' })
+  await execFileAsync('gh', ['--version'])
 } catch {
   console.error('gh CLI is required but not found. Install from https://cli.github.com')
   process.exit(1)
@@ -63,10 +65,15 @@ try {
 
 const workpath = resolve(argv.workpath ?? process.cwd())
 
-if (!existsSync(resolve(workpath, 'package.json')) || !existsSync(resolve(workpath, 'CHANGELOG.md'))) {
+try {
+  await access(resolve(workpath, 'package.json'))
+  await access(resolve(workpath, 'CHANGELOG.md'))
+} catch {
   console.error('Must be run in a directory with package.json and CHANGELOG.md')
   process.exit(1)
 }
+
+const workPkg = JSON.parse(await readFile(resolve(workpath, 'package.json'), 'utf8'))
 
 const isEnterprise = !!argv.endpoint && argv.endpoint !== 'https://api.github.com'
 
@@ -77,6 +84,10 @@ try {
   console.error(/** @type {Error} */ (err).message)
   process.exit(1)
 }
+
+const npmExecpath = process.env['npm_execpath']
+const npmCmd = npmExecpath ? process.execPath : 'npm'
+const npmBaseArgs = npmExecpath ? [npmExecpath] : []
 
 const opts = {
   ...defaults,
@@ -89,7 +100,10 @@ const opts = {
   ...(argv.draft != null && { draft: argv.draft }),
   ...(argv.prerelease != null && { prerelease: argv.prerelease }),
   dryRun: argv['dry-run'] ?? false,
-  yes: argv.yes ?? false,
+  prompt: argv.prompt ?? false,
+  npmCheck: !(argv['no-npm-check'] ?? false),
+  push: !(argv['no-push'] ?? false),
+  build: !(argv['no-build'] ?? false) && !!workPkg.scripts?.build,
   upsert: !(argv['no-upsert'] ?? false),
   assets: argv.assets ? argv.assets.split(',').map(a => a.trim()) : null,
 }
@@ -98,16 +112,36 @@ preview(opts)
 
 if (opts.dryRun) process.exit(0)
 
-if (!opts.yes) {
+if (opts.prompt) {
   const rl = createInterface({ input: process.stdin, output: process.stdout })
   const answer = await rl.question('publish release to github? [y/N] ')
   rl.close()
   if (!answer.toLowerCase().startsWith('y')) process.exit(1)
 }
 
+if (opts.npmCheck) {
+  await runNpmCheck()
+}
+
+if (opts.build) {
+  const buildResult = spawnSync(npmCmd, [...npmBaseArgs, 'run', 'build'], { stdio: 'inherit', cwd: workpath })
+  if (buildResult.status !== 0) {
+    console.error('npm run build failed')
+    process.exit(buildResult.status ?? 1)
+  }
+}
+
+if (opts.push) {
+  const pushResult = spawnSync('git', ['push', '--follow-tags'], { stdio: 'inherit', cwd: workpath })
+  if (pushResult.status !== 0) {
+    console.error('git push --follow-tags failed')
+    process.exit(pushResult.status ?? 1)
+  }
+}
+
 // Write body to a temp file to avoid shell escaping issues
 const bodyFile = join(tmpdir(), `releasearoni-${randomBytes(8).toString('hex')}.md`)
-writeFileSync(bodyFile, opts.body)
+await writeFile(bodyFile, opts.body)
 
 try {
   const args = [
@@ -121,14 +155,12 @@ try {
   if (opts.prerelease) args.push('--prerelease')
   if (opts.assets?.length) args.push(...opts.assets)
 
-  const result = spawnSync('gh', args, {
-    stdio: ['ignore', 'pipe', 'pipe'],
-    encoding: 'utf8',
-    cwd: workpath,
-  })
-
-  if (result.status !== 0) {
-    const alreadyExists = result.stderr?.includes('already exists')
+  try {
+    const { stdout } = await execFileAsync('gh', args, { encoding: 'utf8', cwd: workpath })
+    console.log(stdout.trim())
+  } catch (err) {
+    const e = /** @type {any} */ (err)
+    const alreadyExists = e.stderr?.includes('already exists')
     if (opts.upsert && alreadyExists) {
       // Upsert: update the existing release in place
       const editArgs = [
@@ -140,28 +172,21 @@ try {
       if (opts.draft) editArgs.push('--draft')
       if (opts.prerelease) editArgs.push('--prerelease')
 
-      const editResult = spawnSync('gh', editArgs, {
-        stdio: ['ignore', 'pipe', 'inherit'],
-        encoding: 'utf8',
-        cwd: workpath,
-      })
-
-      if (editResult.status !== 0) {
+      try {
+        const { stdout } = await execFileAsync('gh', editArgs, { encoding: 'utf8', cwd: workpath })
+        console.log(stdout.trim())
+      } catch (upsertErr) {
         console.error('gh release edit failed')
-        process.exit(editResult.status ?? 1)
+        process.exit(/** @type {any} */ (upsertErr).code ?? 1)
       }
-
-      console.log(editResult.stdout.trim())
     } else {
-      process.stderr.write(result.stderr ?? '')
+      process.stderr.write(e.stderr ?? '')
       console.error('gh release create failed')
-      process.exit(result.status ?? 1)
+      process.exit(e.code ?? 1)
     }
-  } else {
-    console.log(result.stdout.trim())
   }
 } finally {
-  unlinkSync(bodyFile)
+  await unlink(bodyFile)
 }
 
 process.exit(0)

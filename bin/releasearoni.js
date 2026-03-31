@@ -5,10 +5,11 @@
  * @import { Argv } from '../lib/args.js'
  */
 
-import { existsSync, readFileSync } from 'node:fs'
+import { readFile, access } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { parseArgs } from 'node:util'
+import { parseArgs, promisify } from 'node:util'
 import { createInterface } from 'node:readline/promises'
+import { execFile, spawnSync } from 'node:child_process'
 import { Octokit } from '@octokit/rest'
 import ghauth from 'ghauth'
 import { formatHelpText } from 'argsclopts'
@@ -19,6 +20,8 @@ import { options, pkgPath } from '../lib/args.js'
 import { runVersion } from '../lib/version-hook.js'
 import { runNpmCheck } from '../lib/npm-check.js'
 import { runPreversion } from '../lib/preversion.js'
+
+const execFileAsync = promisify(execFile)
 
 // Subcommand: releasearoni version
 if (process.argv[2] === 'version') {
@@ -40,7 +43,7 @@ if (process.argv[2] === 'preversion') {
 
 const { values } = parseArgs({ options, allowPositionals: false, args: process.argv.slice(2) })
 const argv = /** @type {Argv} */ (values)
-const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'))
+const pkg = JSON.parse(await readFile(pkgPath, 'utf8'))
 
 if (argv.version) {
   console.log(pkg.version)
@@ -54,10 +57,15 @@ if (argv.help) {
 
 const workpath = resolve(argv.workpath ?? process.cwd())
 
-if (!existsSync(resolve(workpath, 'package.json')) || !existsSync(resolve(workpath, 'CHANGELOG.md'))) {
+try {
+  await access(resolve(workpath, 'package.json'))
+  await access(resolve(workpath, 'CHANGELOG.md'))
+} catch {
   console.error('Must be run in a directory with package.json and CHANGELOG.md')
   process.exit(1)
 }
+
+const workPkg = JSON.parse(await readFile(resolve(workpath, 'package.json'), 'utf8'))
 
 const isEnterprise = !!argv.endpoint && argv.endpoint !== 'https://api.github.com'
 
@@ -92,6 +100,10 @@ try {
   process.exit(1)
 }
 
+const npmExecpath = process.env['npm_execpath']
+const npmCmd = npmExecpath ? process.execPath : 'npm'
+const npmBaseArgs = npmExecpath ? [npmExecpath] : []
+
 const opts = {
   ...defaults,
   auth,
@@ -105,7 +117,10 @@ const opts = {
   ...(argv.prerelease != null && { prerelease: argv.prerelease }),
   ...(argv.endpoint != null && { endpoint: argv.endpoint }),
   dryRun: argv['dry-run'] ?? false,
-  yes: argv.yes ?? false,
+  prompt: argv.prompt ?? false,
+  npmCheck: !(argv['no-npm-check'] ?? false),
+  push: !(argv['no-push'] ?? false),
+  build: !(argv['no-build'] ?? false) && !!workPkg.scripts?.build,
   upsert: !(argv['no-upsert'] ?? false),
   assets: argv.assets ? argv.assets.split(',').map(a => a.trim()) : null,
 }
@@ -114,11 +129,31 @@ preview(opts)
 
 if (opts.dryRun) process.exit(0)
 
-if (!opts.yes) {
+if (opts.prompt) {
   const rl = createInterface({ input: process.stdin, output: process.stdout })
   const answer = await rl.question('publish release to github? [y/N] ')
   rl.close()
   if (!answer.toLowerCase().startsWith('y')) process.exit(1)
+}
+
+if (opts.npmCheck) {
+  await runNpmCheck()
+}
+
+if (opts.build) {
+  const buildResult = spawnSync(npmCmd, [...npmBaseArgs, 'run', 'build'], { stdio: 'inherit', cwd: workpath })
+  if (buildResult.status !== 0) {
+    console.error('npm run build failed')
+    process.exit(buildResult.status ?? 1)
+  }
+}
+
+if (opts.push) {
+  const pushResult = spawnSync('git', ['push', '--follow-tags'], { stdio: 'inherit', cwd: workpath })
+  if (pushResult.status !== 0) {
+    console.error('git push --follow-tags failed')
+    process.exit(pushResult.status ?? 1)
+  }
 }
 
 const octokit = new Octokit({ auth: auth.token, baseUrl: opts.endpoint })
