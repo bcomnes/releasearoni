@@ -11,6 +11,7 @@
     "argsclopts": "^1.0.5",
     "auto-changelog": "^2.0.0",
     "changelog-parser": "^3.0.1",
+    "ci-info": "^4.4.0",
     "ghauth": "^7.0.1",
     "github-url-to-object": "^4.0.6",
     "mime-types": "^3.0.2",
@@ -45,15 +46,15 @@
   "license": "MIT",
   "type": "module",
   "bin": {
-    "releasearoni": "./bin/releasearoni.js",
-    "releasearoni-gh": "./bin/releasearoni-gh.js"
+    "releasearoni": "bin/releasearoni.js",
+    "releasearoni-gh": "bin/releasearoni-gh.js"
   },
   "module": "index.js",
   "main": "index.js",
   "types": "index.d.ts",
   "repository": {
     "type": "git",
-    "url": "https://github.com/bcomnes/releasearoni.git"
+    "url": "git+https://github.com/bcomnes/releasearoni.git"
   },
   "scripts": {
     "prepublishOnly": "node ./bin/releasearoni.js npm-check && npm run build && git push --follow-tags && node ./bin/releasearoni-gh.js -y",
