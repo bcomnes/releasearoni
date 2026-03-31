@@ -57,6 +57,7 @@ if (envToken) {
 } else {
   // ghauth v7 returns a Promise; cast to expected shape
   auth = /** @type {{ token: string }} */ (await /** @type {any} */ (ghauth)({
+    clientId: 'Ov23liae5HK3KZ9FyzGf',
     configName: 'releasearoni',
     scopes: ['repo'],
     note: 'releasearoni',
