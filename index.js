@@ -82,5 +82,4 @@ export async function createRelease (options) {
   }
 
   return release
-</thinking>
 }

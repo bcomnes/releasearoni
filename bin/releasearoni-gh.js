@@ -19,6 +19,7 @@ import { preview } from '../lib/preview.js'
 import { options, pkgPath } from '../lib/args.js'
 import { runVersion } from '../lib/version-hook.js'
 import { runNpmCheck } from '../lib/npm-check.js'
+import { runPreversion } from '../lib/preversion.js'
 
 // Subcommand: releasearoni-gh version
 if (process.argv[2] === 'version') {
@@ -29,6 +30,12 @@ if (process.argv[2] === 'version') {
 // Subcommand: releasearoni-gh npm-check
 if (process.argv[2] === 'npm-check') {
   await runNpmCheck()
+  process.exit(0)
+}
+
+// Subcommand: releasearoni-gh preversion
+if (process.argv[2] === 'preversion') {
+  await runPreversion(process.argv.slice(3))
   process.exit(0)
 }
 

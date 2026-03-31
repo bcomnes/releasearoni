@@ -133,6 +133,7 @@ Typical `package.json` setup — no `npm-run-all2` or separate `auto-changelog` 
 ```json
 {
   "scripts": {
+    "preversion": "releasearoni preversion",
     "version": "releasearoni version",
     "release": "git push --follow-tags && releasearoni -y"
   }
@@ -140,9 +141,10 @@ Typical `package.json` setup — no `npm-run-all2` or separate `auto-changelog` 
 ```
 
 Run `npm version patch` (or `minor`/`major`) and npm will:
-1. Bump the version in `package.json`
-2. Run `releasearoni version` → regenerates `CHANGELOG.md` and stages it
-3. Commit and tag
+1. Run `releasearoni preversion` → verifies the working tree is clean, dumps `git diff` if not
+2. Bump the version in `package.json`
+3. Run `releasearoni version` → regenerates `CHANGELOG.md` and stages it
+4. Commit and tag
 
 Then `npm run release` pushes the tag and creates the GitHub release.
 
@@ -151,6 +153,19 @@ To stage extra files (e.g. a lock file your project manages separately):
 ```json
 "version": "releasearoni version --add package-lock.json"
 ```
+
+### `releasearoni preversion`
+
+Checks that the git working tree is clean before `npm version` runs. If anything is dirty, prints `git status` and `git diff HEAD` so you can see exactly what needs to be addressed, then exits non-zero. Designed for use as the npm [`preversion` lifecycle script](https://docs.npmjs.com/cli/v10/using-npm/scripts#life-cycle-scripts).
+
+```console
+Usage: releasearoni preversion [options]
+
+    --workpath, -w        Working directory (default: cwd)
+    --help, -h            Show help
+```
+
+Without this, a dirty working tree produces npm's terse `Git working directory not clean.` error with no indication of what is actually dirty — especially painful in CI where you can't inspect the workspace interactively.
 
 ### Environment variables (`releasearoni` only)
 
