@@ -88,7 +88,7 @@ Both bins derive release defaults automatically:
 
 | Field | Default source |
 |---|---|
-| `tag_name` | `v` + `version` from `package.json` (or `lerna.json`) |
+| `tag_name` | `v` + `version` from `package.json` |
 | `name` | Same as `tag_name` |
 | `body` | Latest versioned entry from `CHANGELOG.md` |
 | `target_commitish` | Current `HEAD` commit SHA (`git rev-parse HEAD`) |

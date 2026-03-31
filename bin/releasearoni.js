@@ -7,9 +7,9 @@
 
 import { readFile, access } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { parseArgs, promisify } from 'node:util'
+import { parseArgs } from 'node:util'
 import { createInterface } from 'node:readline/promises'
-import { execFile, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { Octokit } from '@octokit/rest'
 import ghauth from 'ghauth'
 import { formatHelpText } from 'argsclopts'
@@ -20,8 +20,6 @@ import { options, pkgPath } from '../lib/args.js'
 import { runVersion } from '../lib/version-hook.js'
 import { runNpmCheck } from '../lib/npm-check.js'
 import { runPreversion } from '../lib/preversion.js'
-
-const execFileAsync = promisify(execFile)
 
 // Subcommand: releasearoni version
 if (process.argv[2] === 'version') {
