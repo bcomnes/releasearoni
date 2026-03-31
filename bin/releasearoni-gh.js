@@ -18,10 +18,17 @@ import { getDefaults } from '../lib/get-defaults.js'
 import { preview } from '../lib/preview.js'
 import { options, pkgPath } from '../lib/args.js'
 import { runVersion } from '../lib/version-hook.js'
+import { runNpmCheck } from '../lib/npm-check.js'
 
 // Subcommand: releasearoni-gh version
 if (process.argv[2] === 'version') {
   await runVersion(process.argv.slice(3))
+  process.exit(0)
+}
+
+// Subcommand: releasearoni-gh npm-check
+if (process.argv[2] === 'npm-check') {
+  await runNpmCheck()
   process.exit(0)
 }
 
@@ -76,6 +83,7 @@ const opts = {
   ...(argv.prerelease != null && { prerelease: argv.prerelease }),
   dryRun: argv['dry-run'] ?? false,
   yes: argv.yes ?? false,
+  upsert: !(argv['no-upsert'] ?? false),
   assets: argv.assets ? argv.assets.split(',').map(a => a.trim()) : null,
 }
 
@@ -107,17 +115,44 @@ try {
   if (opts.assets?.length) args.push(...opts.assets)
 
   const result = spawnSync('gh', args, {
-    stdio: ['ignore', 'pipe', 'inherit'],
+    stdio: ['ignore', 'pipe', 'pipe'],
     encoding: 'utf8',
     cwd: workpath,
   })
 
   if (result.status !== 0) {
-    console.error('gh release create failed')
-    process.exit(result.status ?? 1)
-  }
+    const alreadyExists = result.stderr?.includes('already exists')
+    if (opts.upsert && alreadyExists) {
+      // Upsert: update the existing release in place
+      const editArgs = [
+        'release', 'edit', opts.tag_name,
+        '--title', opts.name,
+        '--notes-file', bodyFile,
+        '--repo', `${opts.owner}/${opts.repo}`,
+      ]
+      if (opts.draft) editArgs.push('--draft')
+      if (opts.prerelease) editArgs.push('--prerelease')
 
-  console.log(result.stdout.trim())
+      const editResult = spawnSync('gh', editArgs, {
+        stdio: ['ignore', 'pipe', 'inherit'],
+        encoding: 'utf8',
+        cwd: workpath,
+      })
+
+      if (editResult.status !== 0) {
+        console.error('gh release edit failed')
+        process.exit(editResult.status ?? 1)
+      }
+
+      console.log(editResult.stdout.trim())
+    } else {
+      process.stderr.write(result.stderr ?? '')
+      console.error('gh release create failed')
+      process.exit(result.status ?? 1)
+    }
+  } else {
+    console.log(result.stdout.trim())
+  }
 } finally {
   unlinkSync(bodyFile)
 }

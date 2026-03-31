@@ -17,10 +17,17 @@ import { preview } from '../lib/preview.js'
 import { uploadAssets } from '../lib/upload-assets.js'
 import { options, pkgPath } from '../lib/args.js'
 import { runVersion } from '../lib/version-hook.js'
+import { runNpmCheck } from '../lib/npm-check.js'
 
 // Subcommand: releasearoni version
 if (process.argv[2] === 'version') {
   await runVersion(process.argv.slice(3))
+  process.exit(0)
+}
+
+// Subcommand: releasearoni npm-check
+if (process.argv[2] === 'npm-check') {
+  await runNpmCheck()
   process.exit(0)
 }
 
@@ -88,6 +95,7 @@ const opts = {
   ...(argv.endpoint != null && { endpoint: argv.endpoint }),
   dryRun: argv['dry-run'] ?? false,
   yes: argv.yes ?? false,
+  upsert: !(argv['no-upsert'] ?? false),
   assets: argv.assets ? argv.assets.split(',').map(a => a.trim()) : null,
 }
 
@@ -121,12 +129,36 @@ try {
   const e = /** @type {any} */ (err)
   if (e.status === 404) {
     console.error('404 Not Found. Check that the repo exists and your token has access.')
+    process.exit(1)
+  } else if (e.errors?.[0]?.code === 'already_exists' && opts.upsert) {
+    // Upsert: fetch the existing release and update it in place
+    try {
+      const { data: existing } = await octokit.repos.getReleaseByTag({
+        owner: opts.owner,
+        repo: opts.repo,
+        tag: opts.tag_name,
+      })
+      const { data: updated } = await octokit.repos.updateRelease({
+        owner: opts.owner,
+        repo: opts.repo,
+        release_id: existing.id,
+        name: opts.name,
+        body: opts.body,
+        draft: opts.draft,
+        prerelease: opts.prerelease,
+      })
+      release = updated
+    } catch (upsertErr) {
+      console.error(/** @type {Error} */ (upsertErr).message)
+      process.exit(1)
+    }
   } else if (e.errors?.[0]?.code === 'already_exists') {
     console.error(`Release already exists for tag ${opts.tag_name} in ${opts.owner}/${opts.repo}`)
+    process.exit(1)
   } else {
     console.error(e.message)
+    process.exit(1)
   }
-  process.exit(1)
 }
 
 if (opts.assets?.length) {

@@ -39,6 +39,7 @@ Usage: releasearoni [options]
     --endpoint, -e        GitHub API endpoint URL (default: https://api.github.com)
     --assets, -a          Comma-delimited list of assets to upload
     --dry-run             Preview release without creating it (default: false)
+    --no-upsert           Fail if a release for this tag already exists (default: false)
     --yes, -y             Skip confirmation prompt (default: false)
     --help, -h            Show help
     --version, -v         Show version
@@ -67,6 +68,7 @@ Usage: releasearoni-gh [options]
     --endpoint, -e        GitHub API endpoint URL (default: https://api.github.com)
     --assets, -a          Comma-delimited list of assets to upload
     --dry-run             Preview release without creating it (default: false)
+    --no-upsert           Fail if a release for this tag already exists (default: false)
     --yes, -y             Skip confirmation prompt (default: false)
     --help, -h            Show help
     --version, -v         Show version
@@ -90,6 +92,26 @@ Both bins derive release defaults automatically:
 | `endpoint` | `https://api.github.com` |
 
 The `CHANGELOG.md` must be in [keepachangelog](https://keepachangelog.com) format. Releases are blocked if an `[Unreleased]` section contains content.
+
+If a release for the tag already exists (e.g. when re-running a failed publish), both bins will update the existing release in place rather than failing. Pass `--no-upsert` to get a hard failure instead, which is useful for enforcing that a tag is never accidentally re-released.
+
+### `releasearoni npm-check`
+
+Checks whether you are logged in to npm. If not logged in and the `CI` environment variable is not set, runs `npm login` interactively. In CI, exits non-zero with an actionable error if not authenticated. Designed to run at the top of a `prepublishOnly` script so login issues are caught before any build, push, or release work has started.
+
+```console
+Usage: releasearoni npm-check
+```
+
+Typical `package.json` setup:
+
+```json
+{
+  "scripts": {
+    "prepublishOnly": "releasearoni npm-check && git push --follow-tags && releasearoni -y"
+  }
+}
+```
 
 ### `releasearoni version`
 
@@ -137,7 +159,7 @@ Authentication for the direct API bin is resolved in this order:
 - `GH_TOKEN`
 - `GITHUB_TOKEN`
 - `GH_RELEASE_GITHUB_API_TOKEN`
-- Interactive `ghauth` browser flow (stored in OS keychain)
+- Interactive [GitHub device flow](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps#device-flow) via `ghauth` — opens a browser prompt, stores the token in the OS keychain for future runs. Press <kbd>Enter</kbd> at the device flow prompt to fall back to pasting a personal access token instead.
 
 ## API
 
@@ -176,6 +198,7 @@ Options:
 | `prerelease` | `boolean` | Mark as prerelease. Default: `false`. |
 | `endpoint` | `string` | GitHub API base URL. Default: `https://api.github.com`. |
 | `assets` | `string[] \| {name, path}[]` | Files to upload as release assets. |
+| `upsert` | `boolean` | Update existing release if tag already exists. Default: `true`. Pass `false` to fail instead. |
 
 Returns the GitHub release object from the API response.
 

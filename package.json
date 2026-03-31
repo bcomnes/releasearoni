@@ -23,7 +23,7 @@
     "@types/mime-types": "^3.0.1",
     "@types/node": "^25.0.0",
     "@voxpelli/tsconfig": "^16.1.0",
-    "c8": "^11.0.0",
+
     "neostandard": "^0.13.0",
     "npm-run-all2": "^8.0.1",
     "typescript": "~6.0.2"
@@ -48,12 +48,12 @@
     "url": "https://github.com/bcomnes/releasearoni.git"
   },
   "scripts": {
-    "prepublishOnly": "npm run build && git push --follow-tags && node ./bin/releasearoni-gh.js -y",
+    "prepublishOnly": "node ./bin/releasearoni.js npm-check && npm run build && git push --follow-tags && node ./bin/releasearoni-gh.js -y",
     "postpublish": "npm run clean",
     "test": "run-s test:*",
     "test:lint": "eslint",
     "test:tsc": "tsc",
-    "test:node-test": "node --test",
+    "test:node-test": "node --experimental-test-coverage --test-coverage-exclude 'bin/**' --test-coverage-exclude '**/*.test.js' --test-coverage-exclude '*.config.*' --test index.test.js lib/*.test.js",
     "version": "node ./bin/releasearoni.js version",
     "build": "npm run clean && run-p build:*",
     "build:declaration": "tsc -p declaration.tsconfig.json",
@@ -65,11 +65,5 @@
   "funding": {
     "type": "individual",
     "url": "https://github.com/sponsors/bcomnes"
-  },
-  "c8": {
-    "reporter": [
-      "lcov",
-      "text"
-    ]
   }
 }

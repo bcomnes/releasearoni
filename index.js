@@ -17,6 +17,7 @@ import { uploadAssets } from './lib/upload-assets.js'
  * @property {string} [endpoint]
  * @property {string} [workpath]
  * @property {Array<string | {name: string, path: string}>} [assets]
+ * @property {boolean} [upsert] Update existing release if tag already exists (default: true)
  */
 
 /**
@@ -38,20 +39,48 @@ export async function createRelease (options) {
 
   const octokit = new Octokit({ auth: opts.auth.token, baseUrl: endpoint })
 
-  const { data: release } = await octokit.repos.createRelease({
-    owner: opts.owner,
-    repo: opts.repo,
-    tag_name: opts.tag_name,
-    target_commitish: opts.target_commitish,
-    name: opts.name,
-    body: opts.body,
-    draft: opts.draft ?? false,
-    prerelease: opts.prerelease ?? false,
-  })
+  const upsert = opts.upsert !== false
+
+  let release
+  try {
+    const { data } = await octokit.repos.createRelease({
+      owner: opts.owner,
+      repo: opts.repo,
+      tag_name: opts.tag_name,
+      target_commitish: opts.target_commitish,
+      name: opts.name,
+      body: opts.body,
+      draft: opts.draft ?? false,
+      prerelease: opts.prerelease ?? false,
+    })
+    release = data
+  } catch (err) {
+    const e = /** @type {any} */ (err)
+    if (e.errors?.[0]?.code === 'already_exists' && upsert) {
+      const { data: existing } = await octokit.repos.getReleaseByTag({
+        owner: opts.owner,
+        repo: opts.repo,
+        tag: opts.tag_name,
+      })
+      const { data: updated } = await octokit.repos.updateRelease({
+        owner: opts.owner,
+        repo: opts.repo,
+        release_id: existing.id,
+        name: opts.name,
+        body: opts.body,
+        draft: opts.draft ?? false,
+        prerelease: opts.prerelease ?? false,
+      })
+      release = updated
+    } else {
+      throw err
+    }
+  }
 
   if (opts.assets?.length) {
     await uploadAssets(release.upload_url, opts.auth.token, opts.assets, () => {})
   }
 
   return release
+</thinking>
 }
