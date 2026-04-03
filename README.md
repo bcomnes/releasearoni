@@ -6,7 +6,7 @@
 [![neostandard javascript style](https://img.shields.io/badge/code_style-neostandard-7fffff?style=flat&labelColor=ff80ff)](https://github.com/neostandard/neostandard)
 [![Socket Badge](https://socket.dev/api/badge/npm/package/releasearoni)](https://socket.dev/npm/package/releasearoni)
 
-** BETA SOFTWARE: DO NOT USE YET **
+<img width="256" height="256" alt="Image" src="https://github.com/user-attachments/assets/1426b820-6ba0-4387-8e66-a819c07855df" />
 
 Publish GitHub releases from the command line or Node.js. Reads defaults from `package.json` and `CHANGELOG.md` (keepachangelog format) so you rarely need to pass any flags. Ships two bins: `releasearoni` uses the GitHub API directly via `@octokit/rest`, and `releasearoni-gh` is a thin wrapper around the `gh` CLI.
 
