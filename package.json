@@ -15,7 +15,7 @@
     "ghauth": "^7.0.1",
     "github-url-to-object": "^4.0.6",
     "mime-types": "^3.0.2",
-    "undici": "^7.24.3"
+    "undici": "^8.0.1"
   },
   "devDependencies": {
     "@types/changelog-parser": "^2.8.4",
