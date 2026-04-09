@@ -56,7 +56,7 @@ export async function createRelease (options) {
     release = data
   } catch (err) {
     const e = /** @type {any} */ (err)
-    if (e.errors?.[0]?.code === 'already_exists' && upsert) {
+    if (e.response?.data?.errors?.[0]?.code === 'already_exists' && upsert) {
       const { data: existing } = await octokit.repos.getReleaseByTag({
         owner: opts.owner,
         repo: opts.repo,

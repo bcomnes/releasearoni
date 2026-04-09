@@ -174,7 +174,7 @@ try {
   if (e.status === 404) {
     console.error('404 Not Found. Check that the repo exists and your token has access.')
     process.exit(1)
-  } else if (e.errors?.[0]?.code === 'already_exists' && opts.upsert) {
+  } else if (e.response?.data?.errors?.[0]?.code === 'already_exists' && opts.upsert) {
     // Upsert: fetch the existing release and update it in place
     try {
       const { data: existing } = await octokit.repos.getReleaseByTag({
@@ -196,7 +196,7 @@ try {
       console.error(/** @type {Error} */ (upsertErr).message)
       process.exit(1)
     }
-  } else if (e.errors?.[0]?.code === 'already_exists') {
+  } else if (e.response?.data?.errors?.[0]?.code === 'already_exists') {
     console.error(`Release already exists for tag ${opts.tag_name} in ${opts.owner}/${opts.repo}`)
     process.exit(1)
   } else {
