@@ -34,8 +34,6 @@ if (process.argv[2] === 'npm-check') {
   process.exit(0)
 }
 
-
-
 const { values } = parseArgs({ options, allowPositionals: false, args: process.argv.slice(2) })
 const argv = /** @type {Argv} */ (values)
 const pkg = JSON.parse(await readFile(pkgPath, 'utf8'))
