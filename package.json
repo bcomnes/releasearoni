@@ -1,7 +1,7 @@
 {
   "name": "releasearoni",
   "description": "WIP - nothing to see here",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "author": "Bret Comnes <bcomnes@gmail.com> (https://bret.io)",
   "bugs": {
     "url": "https://github.com/bcomnes/releasearoni/issues"
@@ -63,7 +63,6 @@
     "test:lint": "eslint",
     "test:tsc": "tsc",
     "test:node-test": "node --experimental-test-coverage --test-coverage-exclude 'bin/**' --test-coverage-exclude '**/*.test.js' --test-coverage-exclude '*.config.*' --test index.test.js lib/*.test.js",
-
     "version": "node ./bin/releasearoni.js version",
     "build": "npm run clean && run-p build:*",
     "build:declaration": "tsc -p declaration.tsconfig.json",
