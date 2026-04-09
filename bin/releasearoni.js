@@ -19,7 +19,6 @@ import { uploadAssets } from '../lib/upload-assets.js'
 import { options, pkgPath } from '../lib/args.js'
 import { runVersion } from '../lib/version-hook.js'
 import { runNpmCheck } from '../lib/npm-check.js'
-import { runPreversion } from '../lib/preversion.js'
 
 // Subcommand: releasearoni version
 if (process.argv[2] === 'version') {
@@ -33,11 +32,7 @@ if (process.argv[2] === 'npm-check') {
   process.exit(0)
 }
 
-// Subcommand: releasearoni preversion
-if (process.argv[2] === 'preversion') {
-  await runPreversion(process.argv.slice(3))
-  process.exit(0)
-}
+
 
 const { values } = parseArgs({ options, allowPositionals: false, args: process.argv.slice(2) })
 const argv = /** @type {Argv} */ (values)

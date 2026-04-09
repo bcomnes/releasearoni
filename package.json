@@ -63,7 +63,7 @@
     "test:lint": "eslint",
     "test:tsc": "tsc",
     "test:node-test": "node --experimental-test-coverage --test-coverage-exclude 'bin/**' --test-coverage-exclude '**/*.test.js' --test-coverage-exclude '*.config.*' --test index.test.js lib/*.test.js",
-    "preversion": "node ./bin/releasearoni.js preversion",
+
     "version": "node ./bin/releasearoni.js version",
     "build": "npm run clean && run-p build:*",
     "build:declaration": "tsc -p declaration.tsconfig.json",

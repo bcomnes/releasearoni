@@ -139,7 +139,6 @@ Typical `package.json` setup — no separate `auto-changelog` install needed:
 ```json
 {
   "scripts": {
-    "preversion": "releasearoni preversion",
     "version": "releasearoni version",
     "prepublishOnly": "releasearoni"
   }
@@ -147,10 +146,9 @@ Typical `package.json` setup — no separate `auto-changelog` install needed:
 ```
 
 Run `npm version patch` (or `minor`/`major`) and npm will:
-1. Run `releasearoni preversion` → verifies the working tree is clean, dumps `git diff` if not
-2. Bump the version in `package.json`
-3. Run `releasearoni version` → regenerates `CHANGELOG.md` and stages it
-4. Commit and tag
+1. Bump the version in `package.json`
+2. Run `releasearoni version` → regenerates `CHANGELOG.md` and stages it
+3. Commit and tag
 
 Then `npm publish` triggers `prepublishOnly`, which checks npm auth, pushes the tag, and creates the GitHub release.
 
@@ -159,19 +157,6 @@ To stage extra files (e.g. a lock file your project manages separately):
 ```json
 "version": "releasearoni version --add package-lock.json"
 ```
-
-### `releasearoni preversion`
-
-Checks that the git working tree is clean before `npm version` runs. If anything is dirty, prints `git status` and `git diff HEAD` so you can see exactly what needs to be addressed, then exits non-zero. Designed for use as the npm [`preversion` lifecycle script](https://docs.npmjs.com/cli/v10/using-npm/scripts#life-cycle-scripts).
-
-```console
-Usage: releasearoni preversion [options]
-
-    --workpath, -w        Working directory (default: cwd)
-    --help, -h            Show help
-```
-
-Without this, a dirty working tree produces npm's terse `Git working directory not clean.` error with no indication of what is actually dirty — especially painful in CI where you can't inspect the workspace interactively.
 
 ## Example setup
 
@@ -186,8 +171,6 @@ A complete `package.json` wired up for versioning and publishing via GitHub Acti
     "url": "git+https://github.com/my-org/my-package.git"
   },
   "scripts": {
-    // Runs before `npm version`: verifies the working tree is clean
-    "preversion": "releasearoni preversion",
     // Runs during `npm version`: regenerates CHANGELOG.md and stages it
     // Use --add to stage additional files that should be part of the version commit
     "version": "releasearoni version --add dist/manifest.json --add src/generated/version.js",
@@ -253,7 +236,7 @@ jobs:
         run: npm publish
 ```
 
-`npm version` runs the `preversion` / `version` lifecycle scripts (changelog + commit + tag), then `npm publish` triggers `prepublishOnly` which pushes the tag and creates the GitHub release.
+`npm version` runs the `version` lifecycle script (changelog + commit + tag), then `npm publish` triggers `prepublishOnly` which pushes the tag and creates the GitHub release.
 
 ### Environment variables (`releasearoni` only)
 
