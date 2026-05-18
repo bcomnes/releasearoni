@@ -19,6 +19,7 @@ import { preview } from '../lib/preview.js'
 import { options, pkgPath } from '../lib/args.js'
 import { runVersion } from '../lib/version-hook.js'
 import { runNpmCheck } from '../lib/npm-check.js'
+import { updateMajorBranch } from '../lib/major-branch.js'
 
 const execFileAsync = promisify(execFile)
 
@@ -99,6 +100,7 @@ const opts = {
   build: !(argv['no-build'] ?? false) && !!workPkg.scripts?.build,
   upsert: !(argv['no-upsert'] ?? false),
   assets: argv.assets ? argv.assets.split(',').map(a => a.trim()) : null,
+  majorBranch: argv['major-branch'] ?? false,
 }
 
 preview(opts)
@@ -180,6 +182,10 @@ try {
   }
 } finally {
   await unlink(bodyFile)
+}
+
+if (opts.majorBranch) {
+  updateMajorBranch({ tag: opts.tag_name, commitish: opts.target_commitish, workpath })
 }
 
 process.exit(0)
