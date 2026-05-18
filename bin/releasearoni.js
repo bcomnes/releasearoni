@@ -19,6 +19,7 @@ import { uploadAssets } from '../lib/upload-assets.js'
 import { options, pkgPath } from '../lib/args.js'
 import { runVersion } from '../lib/version-hook.js'
 import { runNpmCheck } from '../lib/npm-check.js'
+import { updateMajorBranch } from '../lib/major-branch.js'
 
 // Subcommand: releasearoni version
 if (process.argv[2] === 'version') {
@@ -114,6 +115,7 @@ const opts = {
   build: !(argv['no-build'] ?? false) && !!workPkg.scripts?.build,
   upsert: !(argv['no-upsert'] ?? false),
   assets: argv.assets ? argv.assets.split(',').map(a => a.trim()) : null,
+  majorBranch: argv['major-branch'] ?? false,
 }
 
 preview(opts)
@@ -210,6 +212,10 @@ if (opts.assets?.length) {
     console.error(/** @type {Error} */ (err).message)
     process.exit(1)
   }
+}
+
+if (opts.majorBranch) {
+  updateMajorBranch({ tag: opts.tag_name, workpath })
 }
 
 console.log(release.html_url)

@@ -44,6 +44,7 @@ Usage: releasearoni [options]
     --no-npm-check        Skip npm auth check before publishing (default: false)
     --no-push             Skip git push --follow-tags before publishing (default: false)
     --no-build            Skip npm run build even if a build script is present (default: false)
+    --major-branch        After release, create or force-update the major version branch ref (e.g. v1) and push it — required for GitHub Actions consumers that pin to a major version (default: false)
     --help, -h            Show help
     --version, -v         Show version
 
@@ -76,6 +77,7 @@ Usage: releasearoni-gh [options]
     --no-npm-check        Skip npm auth check before publishing (default: false)
     --no-push             Skip git push --follow-tags before publishing (default: false)
     --no-build            Skip npm run build even if a build script is present (default: false)
+    --major-branch        After release, create or force-update the major version branch ref (e.g. v1) and push it — required for GitHub Actions consumers that pin to a major version (default: false)
     --help, -h            Show help
     --version, -v         Show version
 
@@ -100,6 +102,32 @@ Both bins derive release defaults automatically:
 The `CHANGELOG.md` must be in [keepachangelog](https://keepachangelog.com) format. Releases are blocked if an `[Unreleased]` section contains content.
 
 If a release for the tag already exists (e.g. when re-running a failed publish), both bins will update the existing release in place rather than failing. Pass `--no-upsert` to get a hard failure instead, which is useful for enforcing that a tag is never accidentally re-released.
+
+### `--major-branch`
+
+When publishing a GitHub Action, consumers typically pin to a major version ref rather than a specific tag:
+
+```yaml
+- uses: my-org/my-action@v1  # receives v1.x.x updates automatically
+```
+
+Pass `--major-branch` to have releasearoni maintain that ref automatically after each release. After the GitHub release is created, it:
+
+1. Resolves the release tag to its exact commit SHA (`git rev-parse <tag>^{commit}`)
+2. Creates or hard-resets the major version branch (e.g. `v1`) to that commit
+3. Force-pushes the branch to origin
+
+The major version is parsed from the release tag — `v1.2.3` and `1.2.3` both produce `v1`.
+
+```json
+{
+  "scripts": {
+    "prepublishOnly": "releasearoni --major-branch"
+  }
+}
+```
+
+This flag is a no-op for regular npm packages. It's only meaningful when the repository is consumed as a GitHub Action.
 
 ### `releasearoni npm-check`
 
