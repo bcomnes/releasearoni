@@ -215,7 +215,7 @@ if (opts.assets?.length) {
 }
 
 if (opts.majorBranch) {
-  updateMajorBranch({ tag: opts.tag_name, commitish: opts.target_commitish, workpath })
+  updateMajorBranch({ tag: opts.tag_name, workpath })
 }
 
 console.log(release.html_url)

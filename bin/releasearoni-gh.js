@@ -185,7 +185,7 @@ try {
 }
 
 if (opts.majorBranch) {
-  updateMajorBranch({ tag: opts.tag_name, commitish: opts.target_commitish, workpath })
+  updateMajorBranch({ tag: opts.tag_name, workpath })
 }
 
 process.exit(0)
