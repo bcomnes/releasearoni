@@ -10,7 +10,7 @@
     "@octokit/rest": "^22.0.1",
     "argsclopts": "^1.0.5",
     "auto-changelog": "^2.0.0",
-    "changelog-parser": "^3.0.1",
+    "changelog-parser": "^4.0.0",
     "ci-info": "^4.4.0",
     "ghauth": "^7.0.1",
     "github-url-to-object": "^4.0.6",
