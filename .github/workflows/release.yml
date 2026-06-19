@@ -34,7 +34,7 @@ jobs:
     outputs:
       tagName: ${{ steps.npm-bump.outputs.release-tag }}
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         # fetch full history so releasearoni can generate changelogs properly
         fetch-depth: 0
