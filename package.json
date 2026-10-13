@@ -24,7 +24,7 @@
     "@types/mime-types": "^3.0.1",
     "@types/node": "^26.0.0",
     "@voxpelli/tsconfig": "^16.1.0",
-    "neostandard": "^0.13.0",
+    "neostandard": "^0.14.0",
     "npm-run-all2": "^9.0.0",
     "typescript": "~6.0.3"
   },
