@@ -23,10 +23,10 @@
     "@types/github-url-to-object": "^4.0.4",
     "@types/mime-types": "^3.0.1",
     "@types/node": "^26.0.0",
-    "@voxpelli/tsconfig": "^16.1.0",
+    "@voxpelli/tsconfig": "^17.0.0",
     "neostandard": "^0.13.0",
     "npm-run-all2": "^9.0.0",
-    "typescript": "~6.0.3"
+    "typescript": "~7.0.2"
   },
   "engines": {
     "node": ">=24",
