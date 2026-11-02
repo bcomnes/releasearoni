@@ -18,7 +18,7 @@
     "undici": "^8.0.2"
   },
   "devDependencies": {
-    "@types/changelog-parser": "^2.8.4",
+    "@types/changelog-parser": "^4.1.0",
     "@types/ghauth": "^3.2.5",
     "@types/github-url-to-object": "^4.0.4",
     "@types/mime-types": "^3.0.1",
